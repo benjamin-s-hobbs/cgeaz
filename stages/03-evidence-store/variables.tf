@@ -30,5 +30,5 @@ variable "reports_retention_days" {
 variable "functions_location" {
   description = "Region for the Function tier. Free-account consumption (Y1) quota is REGIONAL and zero in most US regions; centralus and westus3 had quota in validation. Probe with labs/00-setup/probe-quota.sh."
   type        = string
-  default     = "centralus"
+  default     = "westus3"
 }
