@@ -6,7 +6,7 @@ variable "environment" {
 variable "functions_location" {
   description = "Region for the reporting Function tier. Same free-account quota constraint as stage 03 — probe with labs/00-setup/probe-quota.sh."
   type        = string
-  default     = "centralus"
+  default     = "westus3"
 }
 
 variable "state_resource_group" {
