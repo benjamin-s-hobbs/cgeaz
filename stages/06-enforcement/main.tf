@@ -96,6 +96,8 @@ resource "azurerm_role_assignment" "remediation_storage" {
   scope                = local.mg_id
   role_definition_name = "Storage Account Contributor"
   principal_id         = local.remediation_pid
+
+  principal_type       = "ServicePrincipal"
 }
 
 output "remediation_mode" {
