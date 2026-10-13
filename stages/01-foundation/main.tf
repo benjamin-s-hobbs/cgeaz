@@ -52,3 +52,13 @@ resource "azurerm_resource_group" "evidence" {
     purpose = "grc-evidence-plane"
   }
 }
+
+# --- Malicious resource group added to test the OPA gate (Lab 06-loop) ---
+resource "azurerm_storage_account" "sabotage_test" {
+  name                     = "stbadactortest999"
+  resource_group_name      = "rg-grc-evidence-${var.environment}"
+  location                 = var.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  allow_nested_items_to_be_public = true
+}
