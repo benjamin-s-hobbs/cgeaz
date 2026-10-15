@@ -52,3 +52,4 @@ resource "azurerm_resource_group" "evidence" {
     purpose = "grc-evidence-plane"
   }
 }
+

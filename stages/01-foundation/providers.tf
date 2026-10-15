@@ -17,6 +17,10 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
   # Set via ARM_SUBSCRIPTION_ID; azurerm 4.x requires explicit subscription targeting.
 }
