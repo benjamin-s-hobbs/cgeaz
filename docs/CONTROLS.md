@@ -14,6 +14,13 @@ category it serves. This file is what turns the repo from code into a control ca
 | `cge-dine-storage-diagnostics` (DeployIfNotExists) | Logging that enforces its own coverage | AU-2, AU-12 |
 | Remediation identity (user-assigned, whitelist roles) | Every automated change has a named, auditable author | AC-2, AU-10 |
 | Log Analytics workspace + Activity Log routing | Central audit trail beyond the 90-day default | AU-9, AU-11 |
+| `cge-require-kv-purge-protection` (Audit) | Enforces recoverability of cryptographic keys against malicious or accidental deletion | CP-9, SI-12 |
+| `cge-require-app-tls-1-2` (Audit) | Ensures web traffic is encrypted in transit using modern protocols | SC-8 |
+| `cge-require-storage-cmek` (Audit) | Enforces customer-managed keys for data-at-rest encryption | SC-28, SC-12 |
+| `cge-require-cosmos-private-endpoint` (Audit) | Forces data-plane traffic onto a Private Endpoint by disabling public access | SC-7 |
+| `cge-deny-nic-public-ip` (Audit) | Prevents public IPs on network interfaces to enforce centralized perimeter routing | SC-7 |
+| `cge-require-sql-tde` (Audit) | Intercepts explicit attempts to disable Transparent Data Encryption on Azure SQL | SC-28 |
+| `cge-require-sub-owner` (AuditIfNotExists) | Flags subscriptions missing the Owner role to enforce administrative accountability | AC-6 |
 
 ## Stage 03 — Evidence Store
 
