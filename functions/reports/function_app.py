@@ -78,7 +78,7 @@ def generate_poam() -> dict:
     ws.title = "POA&M"
     ws.append(
         ["POA&M ID", "Weakness", "Affected Resource", "Severity",
-         "Detected (run)", "Scheduled Completion", "Owner", "Status"]
+        "Detected (run)", "Scheduled Completion", "Owner", "Status"]
     )
     rows = []
     for i, f in enumerate(sorted(findings, key=lambda x: x.get("severity") or ""), 1):
