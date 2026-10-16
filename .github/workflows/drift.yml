@@ -6,7 +6,7 @@ name: drift-detection
 
 on:
   schedule:
-    - cron: "0 8 * * *"   # nightly, after the 05:00 UTC collection sweep
+    - cron: "0 */4 * * *"   # nightly, after the 05:00 UTC collection sweep
   workflow_dispatch: {}
 
 permissions:

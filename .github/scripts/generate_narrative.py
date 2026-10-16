@@ -12,7 +12,7 @@ def main():
     storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
     target_json_blob = os.environ["TARGET_JSON_BLOB"]
     recipient_address = os.environ["RECIPIENT_EMAIL"] # Keep this as a GitHub Secret/Variable
-    foundry_deployment = "gpt-4o-mini"
+    foundry_deployment = "gpt-5.1"  # Ensure this matches the deployment name in Azure AI Foundry
     
     # 1. Dynamically locate Narrative Plane resources via ARG
     print("Locating Azure AI Foundry and ACS endpoints...")
