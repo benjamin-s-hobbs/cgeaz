@@ -16,14 +16,14 @@ resource "azurerm_monitor_action_group" "security_operations" {
 # --- KQL Tripwire 1: Key Vault Secret Reads ---
 
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "kv_secret_reads" {
-  name                = "alert-kv-secret-reads"
-  resource_group_name = azurerm_resource_group.sandbox.name
-  location            = var.location
-  scopes              = [azurerm_log_analytics_workspace.grc.id]
-  description         = "CRITICAL: A Key Vault secret was read by a non-pipeline identity."
-  severity            = 1
-  evaluation_frequency= "PT15M" # Evaluates every 15 minutes
-  window_duration     = "PT15M" # Looks at the last 15 minutes of logs
+  name                 = "alert-kv-secret-reads"
+  resource_group_name  = azurerm_resource_group.sandbox.name
+  location             = var.location
+  scopes               = [azurerm_log_analytics_workspace.grc.id]
+  description          = "CRITICAL: A Key Vault secret was read by a non-pipeline identity."
+  severity             = 1
+  evaluation_frequency = "PT15M" # Evaluates every 15 minutes
+  window_duration      = "PT15M" # Looks at the last 15 minutes of logs
 
   criteria {
     query                   = <<-KQL
@@ -48,14 +48,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "kv_secret_reads" {
 # --- KQL Tripwire 2: Admin Writes Outside Business Hours ---
 
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "out_of_hours_admin" {
-  name                = "alert-out-of-hours-admin"
-  resource_group_name = azurerm_resource_group.sandbox.name
-  location            = var.location
-  scopes              = [azurerm_log_analytics_workspace.grc.id]
-  description         = "WARNING: Administrative changes detected outside standard business hours."
-  severity            = 2
-  evaluation_frequency= "PT1H" # Evaluates hourly
-  window_duration     = "PT1H" 
+  name                 = "alert-out-of-hours-admin"
+  resource_group_name  = azurerm_resource_group.sandbox.name
+  location             = var.location
+  scopes               = [azurerm_log_analytics_workspace.grc.id]
+  description          = "WARNING: Administrative changes detected outside standard business hours."
+  severity             = 2
+  evaluation_frequency = "PT1H" # Evaluates hourly
+  window_duration      = "PT1H"
 
   criteria {
     query                   = <<-KQL
@@ -81,14 +81,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "out_of_hours_admin" {
 # --- KQL Tripwire 3: Manual RBAC Assignments ---
 
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "manual_rbac" {
-  name                = "alert-manual-rbac"
-  resource_group_name = azurerm_resource_group.sandbox.name
-  location            = var.location
-  scopes              = [azurerm_log_analytics_workspace.grc.id]
-  description         = "CRITICAL: A role assignment was created manually, bypassing IaC."
-  severity            = 1
-  evaluation_frequency= "PT15M"
-  window_duration     = "PT15M"
+  name                 = "alert-manual-rbac"
+  resource_group_name  = azurerm_resource_group.sandbox.name
+  location             = var.location
+  scopes               = [azurerm_log_analytics_workspace.grc.id]
+  description          = "CRITICAL: A role assignment was created manually, bypassing IaC."
+  severity             = 1
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
 
   criteria {
     query                   = <<-KQL
@@ -112,14 +112,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "manual_rbac" {
 # --- KQL Tripwire 4: PIM Role Activations ---
 
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "pim_activations" {
-  name                = "alert-pim-activations"
-  resource_group_name = azurerm_resource_group.sandbox.name
-  location            = var.location
-  scopes              = [azurerm_log_analytics_workspace.grc.id]
-  description         = "INFO: A Privileged Identity Management (PIM) role was successfully activated."
-  severity            = 3
-  evaluation_frequency= "PT1H"
-  window_duration     = "PT1H"
+  name                 = "alert-pim-activations"
+  resource_group_name  = azurerm_resource_group.sandbox.name
+  location             = var.location
+  scopes               = [azurerm_log_analytics_workspace.grc.id]
+  description          = "INFO: A Privileged Identity Management (PIM) role was successfully activated."
+  severity             = 3
+  evaluation_frequency = "PT1H"
+  window_duration      = "PT1H"
 
   criteria {
     query                   = <<-KQL

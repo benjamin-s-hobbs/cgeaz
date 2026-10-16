@@ -28,8 +28,3 @@ output "collector_principal_id" {
   description = "The collector identity — filter logs by this to see every evidence write."
   value       = azurerm_linux_function_app.collectors.identity[0].principal_id
 }
-
-output "cosmos_endpoint" {
-  description = "The endpoint URL for the Cosmos DB Evidence Store (Used by GitHub Actions)"
-  value       = azurerm_cosmosdb_account.evidence.endpoint
-}

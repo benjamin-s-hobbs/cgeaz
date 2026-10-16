@@ -10,5 +10,5 @@ output "acs_endpoint" {
 
 output "acs_sender_address" {
   description = "The Azure Managed DoNotReply sender address"
-  value       = azurerm_email_service_domain.managed.from_sender_domain
+  value       = azurerm_email_communication_service_domain.managed.from_sender_domain
 }
