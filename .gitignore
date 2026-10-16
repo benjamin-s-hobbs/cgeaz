@@ -13,7 +13,8 @@ labs/03-foundation/backend.hcl
 # Python
 __pycache__/
 *.pyc
-.venv/
+*.venv/
+*.env
 
 # Local scratch
 *.zip

@@ -1,0 +1,48 @@
+name: Weekly Asset Inventory Collector & AI Narrative
+
+on:
+  schedule:
+    # Runs at 08:00 UTC every Sunday
+    - cron: '0 8 * * 0'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  collect-and-narrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-identity azure-mgmt-resourcegraph azure-cosmos azure-storage-blob azure-communication-email openai
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Step 1: Query ARG, upsert to Cosmos DB, and lock raw JSON in WORM storage
+      - name: Execute ARG Collector & WORM JSON Lock
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: python .github/scripts/asset_collector.py
+
+      # Step 2: Read WORM JSON, generate AI narrative via Foundry, lock markdown in WORM, and email via ACS
+      - name: Generate AI Narrative & Dispatch
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          RECIPIENT_EMAIL: ${{ vars.RECIPIENT_EMAIL }}
+        run: python .github/scripts/generate_narrative.py

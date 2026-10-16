@@ -30,3 +30,13 @@ output "remediation_identity_principal_id" {
   description = "Principal ID — use to filter the Activity Log for automated changes."
   value       = azurerm_user_assigned_identity.remediation.principal_id
 }
+
+output "security_operations_action_group_id" {
+  description = "The Resource ID of the SecOps Action Group for routing alerts"
+  value       = azurerm_monitor_action_group.security_operations.id
+}
+
+output "grc_baseline_initiative_id" {
+  description = "The Resource ID of the Capstone GRC Baseline Policy Initiative"
+  value       = azurerm_management_group_policy_set_definition.grc_baseline.id
+}

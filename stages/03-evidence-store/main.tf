@@ -76,6 +76,16 @@ resource "azurerm_cosmosdb_sql_container" "mappings" {
   partition_key_paths = ["/frameworkId"]
 }
 
+# AssetInventory: Capstone evidence store for NIST 800-53 CM-8 (System Component Inventory).
+# Partitioned by resource provider for efficient querying by architectural domain.
+resource "azurerm_cosmosdb_sql_container" "asset_inventory" {
+  name                = "AssetInventory"
+  resource_group_name = local.evidence_rg
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  database_name       = azurerm_cosmosdb_sql_database.grc.name
+  partition_key_paths = ["/resourceProvider"]
+}
+
 # --- Evidence artifact storage: WORM reports container, zero shared keys. ---
 
 resource "azurerm_storage_account" "evidence" {

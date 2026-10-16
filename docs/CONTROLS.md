@@ -1,8 +1,6 @@
 # Control Mappings
 
-Every policy, collector, and gate rule in this repo, mapped to the NIST 800-53 Rev 5
-category it serves. This file is what turns the repo from code into a control catalog —
-
+Every policy, collector, and gate rule in this repo, mapped to the NIST 800-53 Rev 5 category it serves. This file is what turns the repo from code into a control catalog.
 
 ## Stage 01 — Foundation
 
@@ -21,6 +19,10 @@ category it serves. This file is what turns the repo from code into a control ca
 | `cge-deny-nic-public-ip` (Audit) | Prevents public IPs on network interfaces to enforce centralized perimeter routing | SC-7 |
 | `cge-require-sql-tde` (Audit) | Intercepts explicit attempts to disable Transparent Data Encryption on Azure SQL | SC-28 |
 | `cge-require-sub-owner` (AuditIfNotExists) | Flags subscriptions missing the Owner role to enforce administrative accountability | AC-6 |
+| `alert-kv-secret-reads` (KQL Tripwire) | Alerts when Key Vault secrets are read by non-pipeline identities | SI-4, AU-6 |
+| `alert-out-of-hours-admin` (KQL Tripwire) | Detects administrative changes occurring outside standard business hours | CM-3, SI-4 |
+| `alert-manual-rbac` (KQL Tripwire) | Detects out-of-band role assignments bypassing the IaC pipeline | AC-5, CM-5 |
+| `alert-pim-activations` (KQL Tripwire) | Logs and alerts on Privileged Identity Management (PIM) role activations | AC-2, AC-6 |
 
 ## Stage 03 — Evidence Store
 
@@ -31,6 +33,7 @@ category it serves. This file is what turns the repo from code into a control ca
 | Shared keys disabled + data-plane RBAC | Identity or nothing; no credentials to steal or rotate | IA-2, IA-5 |
 | Collector Function (Security Reader + Cosmos write only) | Continuous control-test capture with lineage; cannot alter what it observes | CA-7 |
 | Collector/reporter identity split | The recorder of facts cannot author the narrative — SoD by role scopes | AC-5 |
+| `AssetInventory` Container & ARG Collector | Automated, weekly extraction of provisioned infrastructure to drive SSP generation | CM-8, PM-5 |
 
 ## Stage 04 — Reporting
 
@@ -38,6 +41,16 @@ category it serves. This file is what turns the repo from code into a control ca
 |---|---|---|
 | POA&M generator (daily, SLA-dated) | Weakness management with owners and dates, from the store only | CA-5, PM-4 |
 | SAR generator (weekly) | Assessment reporting where every number traces to a stored document | CA-2, CA-4 |
+
+## Stage 05 — Narrative (AI Integration)
+
+| Component | What it does | NIST 800-53 Rev 5 |
+|---|---|---|
+| Azure AI Foundry (`gpt-4o-mini`) | Generates auditor-ready executive prose from raw machine data | CA-2, PM-4 |
+| Zero-Key Auth (Cognitive Services User RBAC) | Connects pipeline to AI model using Entra ID; zero exposed API keys | IA-2, AC-2 |
+| WORM-Restricted Prompt Architecture | LLM strictly reads from immutable blob storage; prevents hallucination of live state | SI-7, CA-7 |
+| Narrative Archiving | Automatically locks AI-generated prose alongside its JSON source material | AU-9 |
+| Azure Communication Services (ACS) Dispatch | Delivers the weekly SDR/SSP digest directly to stakeholders | CA-5, PM-4 |
 
 ## Stage 06 — Enforcement
 
