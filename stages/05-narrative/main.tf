@@ -36,12 +36,12 @@ resource "azurerm_cognitive_deployment" "gpt_model" {
   model {
     format  = "OpenAI"
     name    = "gpt-5.1"
-    version = "2025-11-13" 
+    version = "2025-11-13"
   }
 
   sku {
     name     = "Standard"
-    capacity = 1 
+    capacity = 1
   }
 }
 
