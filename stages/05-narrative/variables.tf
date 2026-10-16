@@ -17,4 +17,17 @@ variable "foundry_deployment_name" {
 variable "recipient_email" {
   type        = string
   description = "The ISSO/CISO distribution email address for the weekly digest"
+  default     = "TF_VAR_OWNER_EMAIL"
+}
+
+variable "state_resource_group" {
+  type        = string
+  description = "The name of the resource group containing the Terraform state storage account"
+  default     = "rg-grc-tfstate" # Safe to default since the bootstrap script hardcodes this RG name
+}
+
+variable "state_storage_account" {
+  type        = string
+  description = "The dynamically generated name of the Terraform state storage account"
+  # No default here, because this name is dynamically generated based on your subscription ID
 }

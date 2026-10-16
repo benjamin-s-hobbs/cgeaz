@@ -1,10 +1,3 @@
-data "azurerm_client_config" "current" {}
-
-data "terraform_remote_state" "foundation" {
-  backend = "local"
-  config  = { path = "../01-foundation/terraform.tfstate" }
-}
-
 resource "random_string" "suffix" {
   length  = 6
   special = false
@@ -12,13 +5,14 @@ resource "random_string" "suffix" {
 }
 
 locals {
-  rg_name = data.terraform_remote_state.foundation.outputs.sandbox_resource_group_name
+  rg_name = data.terraform_remote_state.foundation.outputs.evidence_resource_group_name
   narrative_tags = {
     env     = var.environment
     purpose = "grc-narrative-plane"
   }
 }
 
+data "azurerm_client_config" "current" {}
 
 # --- Azure AI Foundry (OpenAI) ---
 
@@ -35,19 +29,19 @@ resource "azurerm_cognitive_account" "foundry" {
   local_auth_enabled = false
 }
 
-resource "azurerm_cognitive_deployment" "gpt4o_mini" {
-  name                 = var.foundry_deployment_name
+resource "azurerm_cognitive_deployment" "gpt_model" {
+  name                 = "gpt-5.1"
   cognitive_account_id = azurerm_cognitive_account.foundry.id
 
   model {
     format  = "OpenAI"
-    name    = "gpt-4o-mini"
-    version = "2024-07-18"
+    name    = "gpt-5.1"
+    version = "2025-11-13" 
   }
 
   sku {
-    name     = "GlobalStandard"
-    capacity = 10
+    name     = "Standard"
+    capacity = 1 
   }
 }
 
