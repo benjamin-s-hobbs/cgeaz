@@ -13,7 +13,10 @@ assignment_types := {
 deny contains msg if {
 	some rc in input.resource_changes
 	rc.type in assignment_types
-	rc.change.actions[_] != "delete"
+	not "delete" in rc.change.actions
 	not rc.change.after.identity
-	msg := sprintf("%s: policy assignments must carry an identity block (remediation effects silently no-op without one)", [rc.address])
+	msg := sprintf(
+		"%s: policy assignments must carry an identity block (remediation effects silently no-op without one)",
+		[rc.address],
+	)
 }
