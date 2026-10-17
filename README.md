@@ -39,15 +39,15 @@ I was brought on as the first GRC Engineer for **FAFO, Inc.**, a 90-person healt
 2. **Federal Pilot (via a Prime):** Requires NIST 800-53 artifacts (machine-readable preferred).
 3. **Enterprise Buyers:** Two major buyers require SOC 2 and are burying the team in security questionnaires.
 
-## Architectural Decisions
+## Architectural & Design Decisions
 
-**Decision 1: Framework Selection — NIST 800-53 Rev 5**
+**Architectural Decision 1: Framework Selection — NIST 800-53 Rev 5**
 While HIPAA is our immediate "bread and butter" requirement for Deal 1, I deliberately selected NIST 800-53 Rev 5 as the foundational framework for this pipeline. My previous work demonstrated the ability to map controls directly to HIPAA, but NIST 800-53 provides the rigor necessary to generate machine-readable artifacts (OSCAL/SSP). By aiming for the highest tier of evidence creation and securely integrating AI for executive summaries, we achieve a **Write Once, Read Many** evidence store. We collect the technical truth once, and crosswalk it to satisfy HIPAA, SOC 2, and the Federal Pilot simultaneously.
 
-**Decision 2: Schema Extension — Asset Inventory & ARG Collector**
+**Architectural Decision 2: Schema Extension — Asset Inventory & ARG Collector**
 With 400 previously unmanaged resources, FAFO desperately needed continuous visibility. I extended the Cosmos DB schema with an `AssetInventory` container, fed by a custom Azure Resource Graph (ARG) Python collector. This collector runs weekly, mapping every provisioned asset, its location, and its `owner`/`env` tags. This replaces manual spreadsheets with a mathematically provable inventory, which is a hard requirement for SOC 2 (CC3.2) and NIST (CM-8).
 
-**Decision 3: KQL Tripwires — Taming the "Wild West"**
+**Architectural Decision 3: KQL Tripwires — Taming the "Wild West"**
 FAFO's 4 engineers have had unchecked "Wild West" access for two years. To establish operational oversight without immediately breaking their workflows, I deployed specific KQL tripwires:
 *   `alert-manual-rbac`: Detects out-of-band role assignments bypassing our IaC pipeline.
 *   `alert-kv-secret-reads`: Alerts when humans (not pipelines) read Key Vault secrets.
@@ -55,14 +55,23 @@ FAFO's 4 engineers have had unchecked "Wild West" access for two years. To estab
 *   `alert-pim-activations`: Audits Privileged Identity Management usage.
 These provide immediate situational awareness to the security team and prove to auditors that we actively monitor administrative access (NIST AU-6, SOC 2 CC7.2).
 
-**Decision 4: Custom Policies — Securing Health Analytics (PHI)**
+**Architectural Decision 4: Custom Policies — Securing Health Analytics (PHI)**
 Because FAFO handles health data, I authored custom policies focused on data protection and accountability. Phased escalation of these policies is the proposed roadmap, from Audit (to observe where there are gaps without breaking the environment) >> to Deny (to prevent any undesirable new configurations) >> to Modify (providing a path to remediate existing resources) >> to deployIfNotExists (to remediate gaps in coverage and close configuration drift)
+
 *   **Require `env` and `owner` tags on Resource Groups (Audit):** Forces accountability for the 400 existing resources.
+
 *   **Deny Public Blob Access:** Prevents accidental exposure of PHI at the API level before the resource even deploys.
+
 *   **Require Key Vault Purge Protection, Storage CMEK, and SQL TDE (Audit):** Ensures cryptographic keys are recoverable and enforces data-at-rest encryption.
+
 *   **Require App Service TLS 1.2 (Audit):** Enforces modern transit encryption.
 These policies mathematically guarantee compliance with HIPAA Safeguards and NIST SC-8 / SC-28.
 
+**Design Decisions- AI Narrative Plane: Script Isolation & API Quota Management:** 
+  During the development of the AI narrative generation stage, the Azure AI Foundry sandbox environment enforced a strict 1,000 Tokens Per Minute (TPM) rate limit, resulting in `429 Too Many Requests` errors when attempting to process large compliance payloads. To engineer around this hard limitation and ensure a resilient pipeline, two design decisions were implemented:
+  
+  1. **Script Splitting (Execution Isolation):** The monolithic `generate_narrative.py` script was split into `gen-narrative-ssdr.py` (for OSCAL generation) and `gen-narrative-digest.py` (for Executive Digest prose). By running these as distinct, sequential steps in the GitHub Actions workflow, each script is granted a completely isolated token budget and execution context, preventing compounding token exhaustion.
+  2. **Aggressive Payload Truncation:** To prevent the AI model from pre-reserving tokens that exceed the sandbox TPM bucket, `max_completion_tokens` was capped at 250. Furthermore, input payloads were heavily throttled: the inventory JSON is sliced to the first 5 items, and the SAR/POA&M markdown inputs are truncated to 150 characters. *Note: This is a tactical constraint specific to the sandbox lab tier; in a production environment with standard API quotas, these truncations would be removed to allow full context ingestion.*
 
 ## The rules the pipeline lives by
 
