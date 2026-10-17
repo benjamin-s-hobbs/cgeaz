@@ -30,7 +30,7 @@ def main():
     for item in evidence_res.data:
         if 'documentdb' in item['type'].lower():
             cosmos_endpoint = item['properties_documentEndpoint']
-        elif 'storageaccounts' in item['type'].lower():
+        elif 'storageaccounts' in item['type'].lower() and 'evid' in item['name'].lower():
             storage_account_name = item['name']
             
     # 2. Query ARG and Upsert to Cosmos DB
