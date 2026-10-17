@@ -101,10 +101,6 @@ def main():
     oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
     upload_to_worm(container_client, oscal_filename, oscal_sdr)
 
-
-    oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
-    upload_to_worm(container_client, oscal_filename, oscal_sdr)
-
     print("\n[Rate Limit Cooldown] Sleeping for 60 seconds to let Azure AI token bucket refill...")
     time.sleep(60)
 
