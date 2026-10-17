@@ -17,7 +17,7 @@ variable "foundry_deployment_name" {
 variable "recipient_email" {
   type        = string
   description = "The ISSO/CISO distribution email address for the weekly digest"
-  
+
 }
 
 variable "state_resource_group" {

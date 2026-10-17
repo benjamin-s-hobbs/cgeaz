@@ -49,7 +49,7 @@ data "azurerm_client_config" "current" {}
 resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_data_contributor" {
   resource_group_name = azurerm_cosmosdb_account.evidence.resource_group_name
   account_name        = azurerm_cosmosdb_account.evidence.name
-  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002" 
+  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   principal_id        = var.pipeline_principal_id
   scope               = azurerm_cosmosdb_account.evidence.id
 }
