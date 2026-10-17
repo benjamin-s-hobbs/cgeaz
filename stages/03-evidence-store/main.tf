@@ -167,9 +167,9 @@ resource "azurerm_role_assignment" "worm_blob_reader" {
 
 # 3. Create the OIDC Federation
 resource "azurerm_federated_identity_credential" "worm_github_federation" {
-  name                = "gh-worm-reader-auth"
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = "https://token.actions.githubusercontent.com"
-  parent_id           = azurerm_user_assigned_identity.worm_reader.id
-  subject             = "repo:benjamin-s-hobbs/cgeaz:ref:refs/heads/feat/fafo-capstone"
+  name                      = "gh-worm-reader-auth"
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  user_assigned_identity_id = azurerm_user_assigned_identity.worm_reader.id
+  subject                   = "repo:benjamin-s-hobbs/cgeaz:ref:refs/heads/feat/fafo-capstone"
 }
