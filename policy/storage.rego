@@ -16,5 +16,8 @@ deny contains msg if {
 	rc.type == "azurerm_storage_account"
 	rc.change.after.shared_access_key_enabled == true
 	not startswith(rc.name, "func_internal")
-	msg := sprintf("%s: shared key access must be disabled (identity or nothing) — func runtime storage is the documented exception", [rc.address])
+	msg := sprintf(
+		"%s: shared key access must be disabled (identity or nothing) — func runtime storage is the documented exception",
+		[rc.address],
+	)
 }

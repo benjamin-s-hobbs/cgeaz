@@ -43,6 +43,16 @@ resource "azurerm_cosmosdb_account" "evidence" {
   tags = local.common_tags
 }
 
+# Fetch the ID of the identity running Terraform (your pipeline Service Principal)
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_data_contributor" {
+  resource_group_name = azurerm_cosmosdb_account.evidence.resource_group_name
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = var.pipeline_principal_id
+  scope               = azurerm_cosmosdb_account.evidence.id
+}
 resource "azurerm_cosmosdb_sql_database" "grc" {
   name                = "grc"
   resource_group_name = local.evidence_rg
@@ -74,6 +84,16 @@ resource "azurerm_cosmosdb_sql_container" "mappings" {
   account_name        = azurerm_cosmosdb_account.evidence.name
   database_name       = azurerm_cosmosdb_sql_database.grc.name
   partition_key_paths = ["/frameworkId"]
+}
+
+# AssetInventory: Capstone evidence store for NIST 800-53 CM-8 (System Component Inventory).
+# Partitioned by resource provider for efficient querying by architectural domain.
+resource "azurerm_cosmosdb_sql_container" "asset_inventory" {
+  name                = "AssetInventory"
+  resource_group_name = local.evidence_rg
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  database_name       = azurerm_cosmosdb_sql_database.grc.name
+  partition_key_paths = ["/resourceProvider"]
 }
 
 # --- Evidence artifact storage: WORM reports container, zero shared keys. ---
@@ -114,20 +134,65 @@ resource "azurerm_storage_container_immutability_policy" "reports_worm" {
 
 # The deployer needs blob DATA-plane access to verify WORM behavior and upload seeds —
 # Owner is control-plane only (the 01_02 lesson, in production form).
-data "azurerm_client_config" "current" {}
 
+# --- 1. BLOB STORAGE PERMISSIONS ---
+
+# Keys for Benny (Human Deployer)
 resource "azurerm_role_assignment" "deployer_blob_data" {
   scope                = azurerm_storage_account.evidence.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# Keys for GitHub Actions (Automated Pipeline)
+resource "azurerm_role_assignment" "pipeline_blob_data" {
+  scope                = azurerm_storage_account.evidence.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.pipeline_principal_id
+}
+
 # The deployer also seeds the frameworks/mappings containers (labs/04's seed script),
 # so it gets the Cosmos data-plane contributor role. Same reasoning as the blob role above.
+
+# --- 2. COSMOS DB PERMISSIONS ---
+
+# Keys for Benny (Human Deployer)
 resource "azurerm_cosmosdb_sql_role_assignment" "deployer_cosmos_write" {
   resource_group_name = local.evidence_rg
   account_name        = azurerm_cosmosdb_account.evidence.name
   role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   principal_id        = data.azurerm_client_config.current.object_id
   scope               = azurerm_cosmosdb_account.evidence.id
+}
+
+# Keys for GitHub Actions (Automated Pipeline) 
+resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_cosmos_write" {
+  resource_group_name = local.evidence_rg
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = var.pipeline_principal_id
+  scope               = azurerm_cosmosdb_account.evidence.id
+}
+
+# 1. Create the dedicated User-Assigned Managed Identity
+resource "azurerm_user_assigned_identity" "worm_reader" {
+  name                = "id-worm-blob-reader"
+  location            = var.location
+  resource_group_name = local.evidence_rg
+}
+
+# 2. Assign ONLY the 'Storage Blob Data Reader' role
+resource "azurerm_role_assignment" "worm_blob_reader" {
+  scope                = azurerm_storage_account.evidence.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_user_assigned_identity.worm_reader.principal_id
+}
+
+# 3. Create the OIDC Federation
+resource "azurerm_federated_identity_credential" "worm_github_federation" {
+  name                      = "gh-worm-reader-auth"
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  user_assigned_identity_id = azurerm_user_assigned_identity.worm_reader.id
+  subject                   = "repo:benjamin-s-hobbs/cgeaz:ref:refs/heads/feat/fafo-capstone"
 }

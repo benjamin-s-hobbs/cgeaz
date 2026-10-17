@@ -1,0 +1,76 @@
+name: Weekly Asset Inventory Collector & AI Narrative
+
+on:
+  schedule:
+    # Runs at 08:00 UTC every Sunday
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_state_storage_account: ${{ vars.STATE_STORAGE_ACCOUNT }}
+  TF_VAR_owner_email: ${{ vars.OWNER_EMAIL }}
+jobs:
+  collect-and-narrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install azure-identity azure-mgmt-resourcegraph azure-cosmos azure-storage-blob azure-communication-email openai
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Step 1: Query ARG, upsert to Cosmos DB, and lock raw JSON in WORM storage
+      - name: Execute ARG Collector & WORM JSON Lock
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: python .github/scripts/asset_collector.py
+
+      # Calculate the dynamic paths for the Function App's output
+      - name: Map Existing WORM Reports
+        run: |
+          YEAR=$(date -u +%Y)
+          MONTH=$(date -u +%m)
+          TODAY=$(date -u +%Y-%m-%d)
+          
+          echo "SAR_JSON_BLOB=sar/$YEAR/$MONTH/sar-$TODAY.md" >> $GITHUB_ENV
+          echo "POAM_JSON_BLOB=poam/$YEAR/$MONTH/poam-$TODAY.json" >> $GITHUB_ENV
+
+      # Step 2: Generate OSCAL System Description
+      - name: Generate OSCAL SDR
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TARGET_JSON_BLOB: ${{ env.TARGET_JSON_BLOB }}
+          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
+        run: python .github/scripts/gen-narrative-ssdr.py
+
+      # Step 3: Generate Executive Digest & Email
+      - name: Generate Digest & Dispatch
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          RECIPIENT_EMAIL: ${{ vars.RECIPIENT_EMAIL }}
+          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
+          SAR_JSON_BLOB: ${{ env.SAR_JSON_BLOB }}
+          POAM_JSON_BLOB: ${{ env.POAM_JSON_BLOB }}
+        run: python .github/scripts/gen-narrative-digest.py

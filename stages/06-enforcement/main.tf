@@ -97,7 +97,7 @@ resource "azurerm_role_assignment" "remediation_storage" {
   role_definition_name = "Storage Account Contributor"
   principal_id         = local.remediation_pid
 
-  principal_type       = "ServicePrincipal"
+  principal_type = "ServicePrincipal"
 }
 
 output "remediation_mode" {

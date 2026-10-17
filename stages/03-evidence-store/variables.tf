@@ -32,3 +32,8 @@ variable "functions_location" {
   type        = string
   default     = "westus3"
 }
+
+variable "pipeline_principal_id" {
+  description = "The Object ID of the Service Principal running the pipeline"
+  type        = string
+}

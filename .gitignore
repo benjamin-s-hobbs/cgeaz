@@ -8,12 +8,13 @@ plan.json
 crash.log
 
 # Backend config is machine-generated per learner (bootstrap.sh)
-labs/03-foundation/backend.hcl
+*/labs/03-foundation/backend.hcl
 
 # Python
 __pycache__/
 *.pyc
-.venv/
+*.venv/
+*.env
 
 # Local scratch
 *.zip
