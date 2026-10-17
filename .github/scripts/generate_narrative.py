@@ -7,6 +7,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.communication.email import EmailClient
 from azure.mgmt.resourcegraph import ResourceGraphClient
 from azure.mgmt.resourcegraph.models import QueryRequest
+from azure.core.exceptions import ResourceNotFoundError
 from openai import AzureOpenAI
 
 def upload_to_worm(container_client, filename, content):
@@ -114,7 +115,11 @@ def main():
     for name, blob_name in [("SAR", sar_json_blob), ("POAM", poam_json_blob), ("FRAMEWORK", framework_json_blob)]:
         if blob_name:
             print(f"Retrieving {name} facts from {blob_name}...")
-            digest_inputs[name] = container_client.get_blob_client(blob_name).download_blob().readall().decode("utf-8")
+            try:
+                digest_inputs[name] = container_client.get_blob_client(blob_name).download_blob().readall().decode("utf-8")
+            except ResourceNotFoundError:
+                print(f"  -> WARNING: {blob_name} not found. Skipping.")
+                digest_inputs[name] = "NO DATA PROVIDED FOR THIS RUN"
         else:
             digest_inputs[name] = "NO DATA PROVIDED FOR THIS RUN"
 
