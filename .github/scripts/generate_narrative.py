@@ -21,7 +21,8 @@ def generate_ai_content(ai_client, deployment, system_prompt, user_content):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content}
         ],
-        temperature=0.1 # Low temperature for highly deterministic GRC outputs
+        temperature=0.1, # Low temperature for highly deterministic GRC outputs
+        max_tokens=1500 # Prevent unbounded token reservation
     )
     return response.choices[0].message.content
 
@@ -88,9 +89,13 @@ def main():
     
     # Archive the SDR prompt
     upload_to_worm(container_client, f"prompt-sdr-{timestamp}.md", sdr_prompt)
+
+    # Minify the JSON and cap it to 50 items to fit sandbox TPM quotas
+    inventory_data = json.loads(inventory_evidence)
+    minified_inventory = json.dumps(inventory_data[:50], separators=(',', ':'))
     
     print(f"Generating OSCAL SDR via {foundry_deployment}...")
-    oscal_sdr = generate_ai_content(ai_client, foundry_deployment, sdr_prompt, f"INPUT: {inventory_evidence}")
+    oscal_sdr = generate_ai_content(ai_client, foundry_deployment, sdr_prompt, f"INPUT: {minified_inventory}")
     
     oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
     upload_to_worm(container_client, oscal_filename, oscal_sdr)
