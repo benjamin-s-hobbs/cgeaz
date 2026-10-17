@@ -1,4 +1,6 @@
 import os
+import json
+from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 from azure.communication.email import EmailClient
@@ -6,13 +8,39 @@ from azure.mgmt.resourcegraph import ResourceGraphClient
 from azure.mgmt.resourcegraph.models import QueryRequest
 from openai import AzureOpenAI
 
+def upload_to_worm(container_client, filename, content):
+    """Helper to lock artifacts in WORM storage."""
+    print(f"Locking artifact into WORM storage as {filename}...")
+    container_client.get_blob_client(filename).upload_blob(content, overwrite=False)
+
+def generate_ai_content(ai_client, deployment, system_prompt, user_content):
+    """Helper to standardize Azure AI Foundry calls."""
+    response = ai_client.chat.completions.create(
+        model=deployment,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ],
+        temperature=0.1 # Low temperature for highly deterministic GRC outputs
+    )
+    return response.choices[0].message.content
+
 def main():
     cred = DefaultAzureCredential()
     subscription_id = os.environ["AZURE_SUBSCRIPTION_ID"]
     storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
-    target_json_blob = os.environ["TARGET_JSON_BLOB"]
-    recipient_address = os.environ["RECIPIENT_EMAIL"] # Keep this as a GitHub Secret/Variable
-    foundry_deployment = "gpt-5.1"  # Ensure this matches the deployment name in Azure AI Foundry
+    
+    # Inventory JSON from the collector phase
+    target_json_blob = os.environ["TARGET_JSON_BLOB"] 
+    
+    # Future inputs for the digest (gracefully fallback if not yet passed by workflow)
+    sar_json_blob = os.environ.get("SAR_JSON_BLOB", "")
+    poam_json_blob = os.environ.get("POAM_JSON_BLOB", "")
+    framework_json_blob = os.environ.get("FRAMEWORK_JSON_BLOB", "")
+    
+    recipient_address = os.environ["RECIPIENT_EMAIL"]
+    foundry_deployment = "gpt-5.1"  
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     
     # 1. Dynamically locate Narrative Plane resources via ARG
     print("Locating Azure AI Foundry and ACS endpoints...")
@@ -39,55 +67,75 @@ def main():
     if not foundry_endpoint or not acs_endpoint or not sender_address:
         raise Exception("Could not discover all required narrative plane resources.")
 
-    # 2. Read Immutable JSON from WORM Blob
-    print(f"Retrieving verified facts from {target_json_blob}...")
+    # 2. Setup Blob & AI Clients
     blob_service_url = f"https://{storage_account_name}.blob.core.windows.net"
     container_client = BlobServiceClient(account_url=blob_service_url, credential=cred).get_container_client("reports")
-    json_evidence = container_client.get_blob_client(target_json_blob).download_blob().readall().decode("utf-8")
     
-    # 3. Load Version-Controlled Prompt
-    with open("prompts/sdr.md", "r") as f:
-        system_prompt = f.read()
-        
-    # 4. Call Azure AI Foundry (Zero Keys)
-    print(f"Generating narrative via {foundry_deployment}...")
     token_provider = cred.get_token("https://cognitiveservices.azure.com/.default")
-    
     ai_client = AzureOpenAI(
         azure_endpoint=foundry_endpoint,
         azure_ad_token_provider=lambda: token_provider.token,
         api_version="2024-02-15-preview"
     )
+
+    # --- PART 1: THE SDR (OSCAL GENERATION) ---
+    print(f"\n--- Starting SDR OSCAL Generation ---")
+    print(f"Retrieving raw inventory facts from {target_json_blob}...")
+    inventory_evidence = container_client.get_blob_client(target_json_blob).download_blob().readall().decode("utf-8")
     
-    response = ai_client.chat.completions.create(
-        model=foundry_deployment,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"INPUT: {json_evidence}"}
-        ],
-        temperature=0.1
-    )
-    narrative_md = response.choices[0].message.content
+    with open("prompts/sdr.md", "r") as f:
+        sdr_prompt = f.read()
     
-    # 5. Upload Narrative to WORM Blob
-    narrative_filename = target_json_blob.replace(".json", "-narrative.md")
-    print(f"Locking narrative into WORM storage as {narrative_filename}...")
-    container_client.get_blob_client(narrative_filename).upload_blob(narrative_md, overwrite=False)
+    # Archive the SDR prompt
+    upload_to_worm(container_client, f"prompt-sdr-{timestamp}.md", sdr_prompt)
     
-    # 6. Dispatch via Azure Communication Services
-    print("Dispatching executive digest to stakeholders...")
+    print(f"Generating OSCAL SDR via {foundry_deployment}...")
+    oscal_sdr = generate_ai_content(ai_client, foundry_deployment, sdr_prompt, f"INPUT: {inventory_evidence}")
+    
+    oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
+    upload_to_worm(container_client, oscal_filename, oscal_sdr)
+
+    
+    
+    # --- PART 2: THE EXECUTIVE DIGEST (PROSE GENERATION) ---
+    print(f"\n--- Starting Executive Digest Generation ---")
+    
+    # Fetch additional reports if they were passed into the pipeline
+    digest_inputs = {}
+    for name, blob_name in [("SAR", sar_json_blob), ("POAM", poam_json_blob), ("FRAMEWORK", framework_json_blob)]:
+        if blob_name:
+            print(f"Retrieving {name} facts from {blob_name}...")
+            digest_inputs[name] = container_client.get_blob_client(blob_name).download_blob().readall().decode("utf-8")
+        else:
+            digest_inputs[name] = "NO DATA PROVIDED FOR THIS RUN"
+
+    with open("prompts/digest.md", "r") as f:
+        digest_prompt = f.read()
+
+    # Archive the Digest prompt
+    upload_to_worm(container_client, f"prompt-digest-{timestamp}.md", digest_prompt)
+    
+    print(f"Generating Executive Digest via {foundry_deployment}...")
+    digest_user_content = f"INPUTS:\nSAR: {digest_inputs['SAR']}\nPOAM: {digest_inputs['POAM']}\nFRAMEWORK: {digest_inputs['FRAMEWORK']}"
+    digest_md = generate_ai_content(ai_client, foundry_deployment, digest_prompt, digest_user_content)
+    
+    digest_filename = f"executive-digest-{timestamp}.md"
+    upload_to_worm(container_client, digest_filename, digest_md)
+    
+    
+    
+    # --- PART 3: DISPATCH ---
+    print("\n--- Dispatching Executive Digest to Stakeholders ---")
     email_client = EmailClient(acs_endpoint, cred)
-    
     message = {
         "senderAddress": f"donotreply@{sender_address}",
         "recipients": {"to": [{"address": recipient_address}]},
         "content": {
-            "subject": "Weekly System Security Plan & Inventory Digest",
-            "plainText": narrative_md,
-            "html": f"<html><body>{narrative_md}</body></html>"
+            "subject": "Weekly System Security Plan & Compliance Digest",
+            "plainText": digest_md,
+            "html": f"<html><body>{digest_md}</body></html>"
         }
     }
-    
     email_client.begin_send(message).result()
     print("Digest successfully delivered.")
 
