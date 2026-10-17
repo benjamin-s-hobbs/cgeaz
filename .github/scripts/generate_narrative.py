@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from datetime import datetime, timezone
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
@@ -22,7 +23,7 @@ def generate_ai_content(ai_client, deployment, system_prompt, user_content):
             {"role": "user", "content": user_content}
         ],
         temperature=0.1, # Low temperature for highly deterministic GRC outputs
-        max_completion_tokens=1500 # Prevent unbounded token reservation
+        max_completion_tokens=500 # Prevent unbounded token reservation
     )
     return response.choices[0].message.content
 
@@ -100,7 +101,14 @@ def main():
     oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
     upload_to_worm(container_client, oscal_filename, oscal_sdr)
 
-    
+
+    oscal_filename = target_json_blob.replace(".json", "-oscal-sdr.json")
+    upload_to_worm(container_client, oscal_filename, oscal_sdr)
+
+    print("\n[Rate Limit Cooldown] Sleeping for 60 seconds to let Azure AI token bucket refill...")
+    time.sleep(60)
+
+    # --- PART 2: THE EXECUTIVE DIGEST (PROSE GENERATION) ---
     
     # --- PART 2: THE EXECUTIVE DIGEST (PROSE GENERATION) ---
     print(f"\n--- Starting Executive Digest Generation ---")
