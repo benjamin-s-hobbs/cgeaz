@@ -135,19 +135,42 @@ resource "azurerm_storage_container_immutability_policy" "reports_worm" {
 # The deployer needs blob DATA-plane access to verify WORM behavior and upload seeds —
 # Owner is control-plane only (the 01_02 lesson, in production form).
 
+# --- 1. BLOB STORAGE PERMISSIONS ---
+
+# Keys for Benny (Human Deployer)
 resource "azurerm_role_assignment" "deployer_blob_data" {
   scope                = azurerm_storage_account.evidence.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# Keys for GitHub Actions (Automated Pipeline)
+resource "azurerm_role_assignment" "pipeline_blob_data" {
+  scope                = azurerm_storage_account.evidence.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.pipeline_principal_id
+}
+
 # The deployer also seeds the frameworks/mappings containers (labs/04's seed script),
 # so it gets the Cosmos data-plane contributor role. Same reasoning as the blob role above.
+
+# --- 2. COSMOS DB PERMISSIONS ---
+
+# Keys for Benny (Human Deployer)
 resource "azurerm_cosmosdb_sql_role_assignment" "deployer_cosmos_write" {
   resource_group_name = local.evidence_rg
   account_name        = azurerm_cosmosdb_account.evidence.name
   role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   principal_id        = data.azurerm_client_config.current.object_id
+  scope               = azurerm_cosmosdb_account.evidence.id
+}
+
+# Keys for GitHub Actions (Automated Pipeline) 
+resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_cosmos_write" {
+  resource_group_name = local.evidence_rg
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = var.pipeline_principal_id
   scope               = azurerm_cosmosdb_account.evidence.id
 }
 
