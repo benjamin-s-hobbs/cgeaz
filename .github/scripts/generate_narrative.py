@@ -22,7 +22,7 @@ def generate_ai_content(ai_client, deployment, system_prompt, user_content):
             {"role": "user", "content": user_content}
         ],
         temperature=0.1, # Low temperature for highly deterministic GRC outputs
-        max_tokens=1500 # Prevent unbounded token reservation
+        max_completion_tokens=1500 # Prevent unbounded token reservation
     )
     return response.choices[0].message.content
 
