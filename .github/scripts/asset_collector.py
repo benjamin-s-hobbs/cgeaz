@@ -39,7 +39,7 @@ def main():
     asset_res = arg_client.resources(QueryRequest(subscriptions=[subscription_id], query=asset_query))
     
     cosmos_client = CosmosClient(url=cosmos_endpoint, credential=cred)
-    container = cosmos_client.get_database_client("grc-evidence").get_container_client("AssetInventory")
+    container = cosmos_client.get_database_client("grc").get_container_client("AssetInventory")
     
     docs_for_json = []
     for item in asset_res.data:
