@@ -45,12 +45,19 @@ resource "azurerm_cognitive_deployment" "gpt_model" {
   }
 }
 
+# Keys for Benny (Human Deployer)
 resource "azurerm_role_assignment" "foundry_user" {
   scope                = azurerm_cognitive_account.foundry.id
   role_definition_name = "Cognitive Services OpenAI User"
   principal_id         = data.azurerm_client_config.current.object_id
-}
+  }
 
+# Keys for GitHub Actions (Automated Pipeline)
+resource "azurerm_role_assignment" "pipeline_openai_user" {
+  scope                = azurerm_cognitive_account.foundry.id # Update to match your actual resource name
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = var.pipeline_principal_id
+}
 # --- Azure Communication Services (ACS) ---
 
 resource "azurerm_communication_service" "acs" {
