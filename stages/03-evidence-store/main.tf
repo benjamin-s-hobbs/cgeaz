@@ -50,7 +50,7 @@ resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_data_contributor" {
   resource_group_name = azurerm_cosmosdb_account.evidence.resource_group_name
   account_name        = azurerm_cosmosdb_account.evidence.name
   role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002" 
-  principal_id        = data.azurerm_client_config.current.object_id
+  principal_id        = var.pipeline_principal_id
   scope               = azurerm_cosmosdb_account.evidence.id
 }
 resource "azurerm_cosmosdb_sql_database" "grc" {
@@ -149,4 +149,28 @@ resource "azurerm_cosmosdb_sql_role_assignment" "deployer_cosmos_write" {
   role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   principal_id        = data.azurerm_client_config.current.object_id
   scope               = azurerm_cosmosdb_account.evidence.id
+}
+
+# 1. Create the dedicated User-Assigned Managed Identity
+resource "azurerm_user_assigned_identity" "worm_reader" {
+  name                = "id-worm-blob-reader"
+  location            = azurerm_storage_account.worm.location
+  resource_group_name = azurerm_storage_account.worm.resource_group_name
+}
+
+# 2. Assign ONLY the 'Storage Blob Data Reader' role
+resource "azurerm_role_assignment" "worm_blob_reader" {
+  scope                = azurerm_storage_account.worm.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_user_assigned_identity.worm_reader.principal_id
+}
+
+# 3. Create the OIDC Federation
+resource "azurerm_federated_identity_credential" "worm_github_federation" {
+  name                = "gh-worm-reader-auth"
+  resource_group_name = azurerm_storage_account.worm.resource_group_name
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = "https://token.actions.githubusercontent.com"
+  parent_id           = azurerm_user_assigned_identity.worm_reader.id
+  subject             = "repo:benjamin-s-hobbs/cgeaz:ref:refs/heads/feat/fafo-capstone"
 }

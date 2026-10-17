@@ -20,7 +20,6 @@ variable "state_storage_account" {
   description = "Terraform state storage account name (from bootstrap.sh / backend.hcl)."
   type        = string
 }
-
 variable "reports_retention_days" {
   description = "WORM retention on the reports container. 90 for the course; whatever your obligations demand in production."
   type        = number
@@ -31,4 +30,9 @@ variable "functions_location" {
   description = "Region for the Function tier. Free-account consumption (Y1) quota is REGIONAL and zero in most US regions; centralus and westus3 had quota in validation. Probe with labs/00-setup/probe-quota.sh."
   type        = string
   default     = "westus3"
+}
+
+variable "pipeline_principal_id" {
+  description = "The Object ID of the Service Principal running the pipeline"
+  type        = string
 }
