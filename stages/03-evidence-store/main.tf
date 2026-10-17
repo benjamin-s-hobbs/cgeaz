@@ -154,13 +154,13 @@ resource "azurerm_cosmosdb_sql_role_assignment" "deployer_cosmos_write" {
 # 1. Create the dedicated User-Assigned Managed Identity
 resource "azurerm_user_assigned_identity" "worm_reader" {
   name                = "id-worm-blob-reader"
-  location            = azurerm_storage_account.worm.location
-  resource_group_name = azurerm_storage_account.worm.resource_group_name
+  location            = var.location
+  resource_group_name = local.evidence_rg
 }
 
 # 2. Assign ONLY the 'Storage Blob Data Reader' role
 resource "azurerm_role_assignment" "worm_blob_reader" {
-  scope                = azurerm_storage_account.worm.id
+  scope                = azurerm_storage_account.evidence.id
   role_definition_name = "Storage Blob Data Reader"
   principal_id         = azurerm_user_assigned_identity.worm_reader.principal_id
 }
@@ -168,7 +168,6 @@ resource "azurerm_role_assignment" "worm_blob_reader" {
 # 3. Create the OIDC Federation
 resource "azurerm_federated_identity_credential" "worm_github_federation" {
   name                = "gh-worm-reader-auth"
-  resource_group_name = azurerm_storage_account.worm.resource_group_name
   audience            = ["api://AzureADTokenExchange"]
   issuer              = "https://token.actions.githubusercontent.com"
   parent_id           = azurerm_user_assigned_identity.worm_reader.id

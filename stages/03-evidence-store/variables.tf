@@ -20,6 +20,7 @@ variable "state_storage_account" {
   description = "Terraform state storage account name (from bootstrap.sh / backend.hcl)."
   type        = string
 }
+
 variable "reports_retention_days" {
   description = "WORM retention on the reports container. 90 for the course; whatever your obligations demand in production."
   type        = number
