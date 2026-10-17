@@ -103,7 +103,7 @@ def main():
     upload_to_worm(container_client, oscal_filename, oscal_sdr)
 
     print("\n[Rate Limit Cooldown] Sleeping for 60 seconds to let Azure AI token bucket refill...")
-    time.sleep(60)
+    time.sleep(90)
 
     
     
@@ -124,7 +124,7 @@ def main():
             digest_inputs[name] = "NO DATA PROVIDED FOR THIS RUN"
 
     with open("prompts/digest.md", "r") as f:
-        digest_prompt = f.read()
+        digest_prompt = f.read()[:400] # Trim the system prompt to save tokens
 
     # Archive the Digest prompt
     upload_to_worm(container_client, f"prompt-digest-{timestamp}.md", digest_prompt)
