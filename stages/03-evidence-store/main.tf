@@ -43,6 +43,16 @@ resource "azurerm_cosmosdb_account" "evidence" {
   tags = local.common_tags
 }
 
+# Fetch the ID of the identity running Terraform (your pipeline Service Principal)
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "pipeline_data_contributor" {
+  resource_group_name = azurerm_cosmosdb_account.evidence.resource_group_name
+  account_name        = azurerm_cosmosdb_account.evidence.name
+  role_definition_id  = "${azurerm_cosmosdb_account.evidence.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002" 
+  principal_id        = data.azurerm_client_config.current.object_id
+  scope               = azurerm_cosmosdb_account.evidence.id
+}
 resource "azurerm_cosmosdb_sql_database" "grc" {
   name                = "grc"
   resource_group_name = local.evidence_rg
@@ -124,7 +134,6 @@ resource "azurerm_storage_container_immutability_policy" "reports_worm" {
 
 # The deployer needs blob DATA-plane access to verify WORM behavior and upload seeds —
 # Owner is control-plane only (the 01_02 lesson, in production form).
-data "azurerm_client_config" "current" {}
 
 resource "azurerm_role_assignment" "deployer_blob_data" {
   scope                = azurerm_storage_account.evidence.id
