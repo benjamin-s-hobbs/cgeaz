@@ -93,7 +93,7 @@ def main():
 
     # Minify the JSON and cap it to 50 items to fit sandbox TPM quotas
     inventory_data = json.loads(inventory_evidence)
-    minified_inventory = json.dumps(inventory_data[:50], separators=(',', ':'))
+    minified_inventory = json.dumps(inventory_data[:5], separators=(',', ':'))
     
     print(f"Generating OSCAL SDR via {foundry_deployment}...")
     oscal_sdr = generate_ai_content(ai_client, foundry_deployment, sdr_prompt, f"INPUT: {minified_inventory}")
@@ -108,7 +108,7 @@ def main():
     print("\n[Rate Limit Cooldown] Sleeping for 60 seconds to let Azure AI token bucket refill...")
     time.sleep(60)
 
-    # --- PART 2: THE EXECUTIVE DIGEST (PROSE GENERATION) ---
+    
     
     # --- PART 2: THE EXECUTIVE DIGEST (PROSE GENERATION) ---
     print(f"\n--- Starting Executive Digest Generation ---")
