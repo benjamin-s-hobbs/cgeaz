@@ -57,13 +57,20 @@ jobs:
           echo "SAR_JSON_BLOB=sar/$YEAR/$MONTH/sar-$TODAY.md" >> $GITHUB_ENV
           echo "POAM_JSON_BLOB=poam/$YEAR/$MONTH/poam-$TODAY.json" >> $GITHUB_ENV
 
-      # Step 2: Read WORM JSON, generate AI narrative via Foundry, lock markdown in WORM, and email via ACS
-      - name: Generate AI Narrative & Dispatch
+      # Step 2: Generate OSCAL System Description
+      - name: Generate OSCAL SDR
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          TARGET_JSON_BLOB: ${{ env.TARGET_JSON_BLOB }}
+          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
+        run: python .github/scripts/gen-narrative-ssdr.py
+
+      # Step 3: Generate Executive Digest & Email
+      - name: Generate Digest & Dispatch
         env:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           RECIPIENT_EMAIL: ${{ vars.RECIPIENT_EMAIL }}
-          TARGET_JSON_BLOB: ${{ env.TARGET_JSON_BLOB }}
+          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
           SAR_JSON_BLOB: ${{ env.SAR_JSON_BLOB }}
           POAM_JSON_BLOB: ${{ env.POAM_JSON_BLOB }}
-          # FRAMEWORK_JSON_BLOB remains unset/empty so the python script gracefully skips it
-        run: python .github/scripts/generate_narrative.py
+        run: python .github/scripts/gen-narrative-digest.py

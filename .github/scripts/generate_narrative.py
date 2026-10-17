@@ -124,7 +124,7 @@ def main():
             digest_inputs[name] = "NO DATA PROVIDED FOR THIS RUN"
 
     with open("prompts/digest.md", "r") as f:
-        digest_prompt = f.read()[:400] # Trim the system prompt to save tokens
+        digest_prompt = f.read()[:300] # Trim the system prompt to save tokens
 
     # Archive the Digest prompt
     upload_to_worm(container_client, f"prompt-digest-{timestamp}.md", digest_prompt)
